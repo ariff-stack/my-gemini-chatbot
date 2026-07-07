@@ -7,7 +7,7 @@ st.set_page_config(page_title="AI Chatbot Dokumen", page_icon="🤖")
 st.title("🤖 AI Chatbot Berkembar (Mod Dokumen)")
 
 # 1. Masukkan API Key anda
-API_KEY = st.secrets["AQ.Ab8RN6LhuzEBMl2aPdPIBNMy8_X7GufE8NtJdDTg_jVoyXft1A"]
+API_KEY = st.secrets["GEMINI_API_KEY"]
 client = genai.Client(api_key=API_KEY)
 
 # Latar belakang: Pastikan fail maklumat_kedai.txt wujud dalam folder yang sama
