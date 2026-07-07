@@ -1,6 +1,8 @@
 [PRODUK & HARGA]
 - Kopi Latte: RM12.00
 - Espresso: RM8.00
+- Nasi Lemak: RM1.00
+- Roti Canai: RM1.20
 
 [POLISI PEMULANGAN]
 - Pemulangan barang hanya diterima dalam tempoh 7 hari selepas pembelian bersama resit.
