@@ -1,28 +1,43 @@
 import streamlit as st
 from google import genai
 import os
+from pypdf import PdfReader  # Tambah pustaka pembaca PDF
 
 # Konfigurasi halaman web
-st.set_page_config(page_title="AI Chatbot Dokumen", page_icon="🤖")
-st.title("🤖 AI Chatbot Berkembar (Mod Dokumen)")
+st.set_page_config(page_title="AI Chatbot Dokumen V2", page_icon="🤖")
+st.title("🤖 AI Chatbot Berkembar (Mod PDF & Teks)")
 
 # 1. Ambil API Key daripada Secrets Streamlit
 API_KEY = st.secrets["GEMINI_API_KEY"]
 client = genai.Client(api_key=API_KEY)
 
-# 2. Baca kandungan fail teks secara domestik (Kalis Ralat Kunci API!)
-NAMA_FAIL = "maklumat_kedai.txt"
-kandungan_dokumen = ""
+# 2. Fungsi pintar untuk membaca fail teks ATAU fail PDF
+def baca_dokumen_rujukan():
+    # Sistem akan cari fail PDF dahulu, jika tiada baru cari fail .txt
+    if os.path.exists("maklumat_kedai.pdf"):
+        try:
+            reader = PdfReader("maklumat_kedai.pdf")
+            teks_pdf = ""
+            for page in reader.pages:
+                teks_pdf += page.extract_text() + "\n"
+            return teks_pdf
+        except Exception as e:
+            st.error(f"Gagal membaca fail PDF: {e}")
+            st.stop()
+            
+    elif os.path.exists("maklumat_kedai.txt"):
+        try:
+            with open("maklumat_kedai.txt", "r", encoding="utf-8") as f:
+                return f.read()
+        except Exception as e:
+            st.error(f"Gagal membaca fail teks: {e}")
+            st.stop()
+    else:
+        st.error("Fail dokumen rujukan ('maklumat_kedai.pdf' atau 'maklumat_kedai.txt') tidak dijumpai di GitHub anda!")
+        st.stop()
 
-if os.path.exists(NAMA_FAIL):
-    try:
-        with open(NAMA_FAIL, "r", encoding="utf-8") as f:
-            kandungan_dokumen = f.read()
-    except Exception as e:
-        st.error(f"Gagal membaca fail teks: {e}")
-else:
-    st.error(f"Fail '{NAMA_FAIL}' tidak dijumpai di GitHub anda!")
-    st.stop()
+# Jalankan fungsi pembacaan fail
+kandungan_dokumen = baca_dokumen_rujukan()
 
 # 3. Simpan SEJARAH sembang teks biasa dalam session_state
 if "messages" not in st.session_state:
@@ -39,7 +54,7 @@ for msg in st.session_state.messages:
         )
     )
 
-# Masukkan dokumen rujukan terus ke dalam System Instruction supaya AI sentiasa ingat
+# Masukkan dokumen rujukan terus ke dalam System Instruction
 arahan_sistem = (
     "Anda adalah pembantu khidmat pelanggan yang mesra. "
     "JAWAB SOALAN HANYA berdasarkan dokumen rujukan yang diberikan di bawah ini. "
@@ -62,12 +77,11 @@ for message in st.session_state.messages:
         st.markdown(message["content"])
 
 # 6. Kotak input untuk pengguna taip mesej
-if user_input := st.chat_input("Tanya saya tentang maklumat kedai..."):
+if user_input := st.chat_input("Tanya saya tentang maklumat dokumen..."):
     with st.chat_message("user"):
         st.markdown(user_input)
     st.session_state.messages.append({"role": "user", "content": user_input})
 
-    # Hantar mesej terus tanpa melalui Files API Google
     with st.chat_message("assistant"):
         with st.spinner("Menyemak dokumen..."):
             try:
