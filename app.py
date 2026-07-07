@@ -1,43 +1,47 @@
 import streamlit as st
 from google import genai
 import os
-from pypdf import PdfReader  # Tambah pustaka pembaca PDF
+from pypdf import PdfReader
 
 # Konfigurasi halaman web
-st.set_page_config(page_title="AI Chatbot Dokumen V2", page_icon="🤖")
-st.title("🤖 AI Chatbot Berkembar (Mod PDF & Teks)")
+st.set_page_config(page_title="AI Chatbot multi-PDF", page_icon="🤖")
+st.title("🤖 AI Chatbot Berkembar (Mod Multi-PDF)")
 
 # 1. Ambil API Key daripada Secrets Streamlit
 API_KEY = st.secrets["GEMINI_API_KEY"]
 client = genai.Client(api_key=API_KEY)
 
-# 2. Fungsi pintar untuk membaca fail teks ATAU fail PDF
-def baca_dokumen_rujukan():
-    # Sistem akan cari fail PDF dahulu, jika tiada baru cari fail .txt
-    if os.path.exists("maklumat_kedai.pdf"):
-        try:
-            reader = PdfReader("maklumat_kedai.pdf")
-            teks_pdf = ""
-            for page in reader.pages:
-                teks_pdf += page.extract_text() + "\n"
-            return teks_pdf
-        except Exception as e:
-            st.error(f"Gagal membaca fail PDF: {e}")
-            st.stop()
-            
-    elif os.path.exists("maklumat_kedai.txt"):
-        try:
-            with open("maklumat_kedai.txt", "r", encoding="utf-8") as f:
-                return f.read()
-        except Exception as e:
-            st.error(f"Gagal membaca fail teks: {e}")
-            st.stop()
-    else:
-        st.error("Fail dokumen rujukan ('maklumat_kedai.pdf' atau 'maklumat_kedai.txt') tidak dijumpai di GitHub anda!")
+# 2. Fungsi pintar untuk membaca dan mencantumkan TEKS daripada BANYAK FAIL PDF
+def baca_semua_pdf():
+    # Senaraikan semua nama fail PDF yang anda ada di GitHub
+    senarai_fail = ["maklumat_kedai1.pdf", "maklumat_kedai2.pdf"]
+    teks_keseluruhan = ""
+    fail_dijumpai = False
+
+    for nama_fail in senarai_fail:
+        if os.path.exists(nama_fail):
+            fail_dijumpai = True
+            try:
+                reader = PdfReader(nama_fail)
+                # Ekstrak teks bagi setiap halaman dalam fail ini
+                for page in reader.pages:
+                    teks_keseluruhan += page.extract_text() + "\n"
+                teks_keseluruhan += "\n--- TAMAT FAIL " + nama_fail + " ---\n\n"
+            except Exception as e:
+                st.error(f"Gagal membaca fail {nama_fail}: {e}")
+                st.stop()
+        else:
+            st.warning(f"Nota: Fail '{nama_fail}' tidak dijumpai di GitHub.")
+
+    # Jika langsung tiada fail yang wujud
+    if not fail_dijumpai:
+        st.error("Tiada satu pun fail PDF dijumpai di GitHub anda!")
         st.stop()
 
-# Jalankan fungsi pembacaan fail
-kandungan_dokumen = baca_dokumen_rujukan()
+    return teks_keseluruhan
+
+# Jalankan fungsi cantuman PDF
+kandungan_dokumen = baca_semua_pdf()
 
 # 3. Simpan SEJARAH sembang teks biasa dalam session_state
 if "messages" not in st.session_state:
@@ -54,12 +58,12 @@ for msg in st.session_state.messages:
         )
     )
 
-# Masukkan dokumen rujukan terus ke dalam System Instruction
+# Masukkan dokumen rujukan gabungan terus ke dalam System Instruction
 arahan_sistem = (
     "Anda adalah pembantu khidmat pelanggan yang mesra. "
     "JAWAB SOALAN HANYA berdasarkan dokumen rujukan yang diberikan di bawah ini. "
     "Jika jawapan tiada dalam dokumen rujukan, katakan dengan sopan bahawa anda tidak mempunyai maklumat tersebut.\n\n"
-    f"--- DOKUMEN RUJUKAN KEDAI ---\n{kandungan_dokumen}"
+    f"--- DOKUMEN RUJUKAN GABUNGAN ---\n{kandungan_dokumen}"
 )
 
 # Cipta sesi chat dinamik
@@ -77,13 +81,13 @@ for message in st.session_state.messages:
         st.markdown(message["content"])
 
 # 6. Kotak input untuk pengguna taip mesej
-if user_input := st.chat_input("Tanya saya tentang maklumat dokumen..."):
+if user_input := st.chat_input("Tanya saya apa-apa tentang kandungan dokumen..."):
     with st.chat_message("user"):
         st.markdown(user_input)
     st.session_state.messages.append({"role": "user", "content": user_input})
 
     with st.chat_message("assistant"):
-        with st.spinner("Menyemak dokumen..."):
+        with st.spinner("Menyemak semua dokumen rujukan..."):
             try:
                 response = chat_session.send_message(user_input)
                 st.markdown(response.text)
